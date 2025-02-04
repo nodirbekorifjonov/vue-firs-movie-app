@@ -6,13 +6,15 @@
         :favouriteMoviesCount="movies.filter((c) => c.favourite).length"
       />
       <div class="search-panel">
-        <SearchPanel />
-        <AppFilter />
+        <SearchPanel :updateTermHandler="updateTermHandler" />
+        <AppFilter
+          :updateFilterHandler="updateFilterHandler"
+          :filterName="filter"
+        />
       </div>
       <MovieList
-        :movies="movies"
-        @onLike="onLikeHandler"
-        @onFavourite="onFavouriteHandler"
+        :movies="onFilterHandler(onSearchHandler(movies, term), filter)"
+        @onToggle="onToggleHandler"
         @onDelete="onDeleteHandler"
       />
       <MovieAdd @createMovie="createMovie" />
@@ -59,36 +61,47 @@ export default {
           id: 3,
         },
       ],
+      term: "",
+      filter: "all",
     };
   },
   methods: {
     createMovie(item) {
       this.movies.push(item);
     },
+    onToggleHandler({ id, prop }) {
+      this.movies = this.movies.map((item) => {
+        if (item.id === id) {
+          return { ...item, [prop]: !item[prop] };
+        } else {
+          return item;
+        }
+      });
+    },
     onDeleteHandler(id) {
-      this.movies.map((item) => {
-        if (item.id === id) {
-          this.movies.pop(item);
-        }
-      });
+      this.movies = this.movies.filter((c) => c.id !== id);
     },
-    onLikeHandler(id) {
-      this.movies.map((item) => {
-        if (item.id === id) {
-          item.like = !item.like;
-        } else {
-          return item;
-        }
-      });
+    onSearchHandler(arr, term) {
+      if (term.length == 0) {
+        return arr;
+      }
+      return arr.filter((c) => c.name.toLowerCase().indexOf(term) > -1);
     },
-    onFavouriteHandler(id) {
-      this.movies.map((item) => {
-        if (item.id === id) {
-          item.favourite = !item.favourite;
-        } else {
-          return item;
-        }
-      });
+    onFilterHandler(arr, filter) {
+      switch (filter) {
+        case "popular":
+          return arr.filter((c) => c.like);
+        case "mostViewers":
+          return arr.filter((c) => c.viewers > 500);
+        default:
+          return arr;
+      }
+    },
+    updateTermHandler(term) {
+      this.term = term;
+    },
+    updateFilterHandler(filter) {
+      this.filter = filter;
     },
   },
 };
