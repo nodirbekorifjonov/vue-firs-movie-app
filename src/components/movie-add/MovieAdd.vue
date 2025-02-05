@@ -39,7 +39,6 @@ export default {
         viewers: this.viewers,
         favourite: false,
         like: false,
-        id: uuidv4(),
       };
 
       this.$emit("createMovie", newMovie);
