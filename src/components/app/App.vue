@@ -12,10 +12,24 @@
           :filterName="filter"
         />
       </div>
+      <Box v-if="!movies.length && !isLoading">
+        <p class="text-center fs-5 text-danger">Kinolar mavjud emas!</p>
+      </Box>
+      <Box v-else-if="isLoading" class="d-flex justify-content-center">
+        <Loader />
+      </Box>
       <MovieList
+        v-else
         :movies="onFilterHandler(onSearchHandler(movies, term), filter)"
         @onToggle="onToggleHandler"
         @onDelete="onDeleteHandler"
+      />
+      <Pagination
+        :totalPages="totalPages"
+        :page="page"
+        @nextPage="nextPageHandler"
+        @previousPage="previousPageHandler"
+        @changePage="changePageHandler"
       />
       <MovieAdd @createMovie="createMovie" />
     </div>
@@ -28,6 +42,8 @@ import MovieList from "../movie-list/MovieList.vue";
 import AppFilter from "../app-filter/AppFilter.vue";
 import SearchPanel from "../search-panel/SearchPanel.vue";
 import AppInfo from "../app-info/AppInfo.vue";
+import axios from "axios";
+import Pagination from "../pagination/pagination.vue";
 export default {
   components: {
     AppInfo,
@@ -35,34 +51,17 @@ export default {
     AppFilter,
     MovieList,
     MovieAdd,
+    Pagination,
   },
   data() {
     return {
-      movies: [
-        {
-          name: "Omar",
-          viewers: 811,
-          favourite: false,
-          like: true,
-          id: 1,
-        },
-        {
-          name: "Empire of Osman",
-          viewers: 411,
-          favourite: true,
-          like: false,
-          id: 2,
-        },
-        {
-          name: "Ertugrul",
-          viewers: 711,
-          favourite: false,
-          like: false,
-          id: 3,
-        },
-      ],
+      movies: [],
       term: "",
       filter: "all",
+      isLoading: false,
+      limit: 10,
+      page: 1,
+      totalPages: 0,
     };
   },
   methods: {
@@ -103,6 +102,54 @@ export default {
     updateFilterHandler(filter) {
       this.filter = filter;
     },
+    async fetchMovie() {
+      try {
+        this.isLoading = true;
+        const response = await axios.get(
+          "https://jsonplaceholder.typicode.com/posts",
+          {
+            params: {
+              _limit: this.limit,
+              _page: this.page,
+            },
+          }
+        );
+
+        const newArr = response.data.map((item) => ({
+          id: item.id,
+          name: item.title,
+          like: false,
+          favourite: false,
+          viewers: item.id * 10,
+        }));
+
+        this.totalPages = Math.ceil(
+          response.headers["x-total-count"] / this.limit
+        );
+        this.movies = newArr;
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    nextPageHandler(next) {
+      this.page = next;
+    },
+    previousPageHandler(prev) {
+      this.page = prev;
+    },
+    changePageHandler(pageNumber) {
+      this.page = pageNumber;
+    },
+  },
+  watch: {
+    page() {
+      this.fetchMovie();
+    },
+  },
+  mounted() {
+    this.fetchMovie();
   },
 };
 </script>
